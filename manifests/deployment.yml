@@ -1,0 +1,16 @@
+apiVersion : apps/v1beta1
+kind: Deployment
+metadata:
+  name: zenithworksdeploytoks 
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: zenithworksdeploytoks 
+    spec:
+      containers:
+        - name: zenithworksdeploytoks 
+          image: raireg1.azurecr.io/zenithworksdeploytoks
+          ports:
+          - containerPort: 80
