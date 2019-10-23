@@ -2,8 +2,8 @@
 # Build and push image to Azure Container Registry; Deploy to Azure Kubernetes Service
 # https://docs.microsoft.com/azure/devops/pipelines/languages/docker
 
-trigger: none
-
+trigger:
+- master
 
 resources:
 - repo: self
@@ -11,17 +11,19 @@ resources:
 variables:
 
   # Container registry service connection established during pipeline creation
-  dockerRegistryServiceConnection: '392d7262-9ac4-4e4a-9e5b-167609ef42bd'
+  dockerRegistryServiceConnection: '9aca893e-50dd-4575-a7e0-3a407e6d4cf1'
   imageRepository: 'zenithworksdeploytoks'
   containerRegistry: 'raireg1.azurecr.io'
   dockerfilePath: '**/Dockerfile'
   tag: '$(Build.BuildId)'
-  imagePullSecret: 'raireg17290ab20-auth'
+  imagePullSecret: 'raireg19d43-auth'
 
   # Agent VM image name
-  vmImageName: 'ubuntu-latest'
+  poolName: igniteDemo
   
-  k8sNamespaceForPR: 'ignitedemo1'
+  # k8sNamespaceForPR: '$(System.pullRequest.sourceBranch)'
+  k8sNamespaceForPR: 'igniteDemo1-reviewResource'
+
 
 stages:
 - stage: Build
@@ -29,7 +31,8 @@ stages:
   jobs:  
   - job: Build
     displayName: Build
-    pool: 'igniteDemo'
+    pool:
+      name: $(poolName)
     steps:
     - task: Docker@2
       displayName: Build and push an image to container registry
@@ -47,12 +50,13 @@ stages:
 - stage: Deploy
   displayName: Deploy stage
   dependsOn: Build
-  condition: and(succeeded(), startsWith(variables['Build.SourceBranch'], 'refs/heads/'))
+  condition: and(succeeded(), not(startsWith(variables['Build.SourceBranch'], 'refs/pull/')))
   jobs:
   - deployment: Deploy
     displayName: Deploy
-    pool: 'igniteDemo'
-    environment: 'zenithworksdeployToK8s.ignitedemo1'
+    pool:
+      name: $(poolName)
+    environment: 'DevOpsProj.ignitedemo1'
     strategy:
       runOnce:
         deploy:
@@ -84,9 +88,10 @@ stages:
   jobs:
   - deployment: Deploy
     displayName: Deploy job
-    pool: 'igniteDemo'
+    pool:
+      name: $(poolName)
       
-    environment: 'zenithworksdeployToK8s.$(k8sNamespaceForPR)'
+    environment: 'DevOpsProj.$(k8sNamespaceForPR)'
     strategy:
       runOnce:
         deploy:
@@ -94,7 +99,7 @@ stages:
           - task: ReviewApp@0
             displayName: 'Create a new resource'
             inputs: 
-              resourceName: $(k8sNamespaceForPR)
+              resourceName: ignitedemo1
 
           - task: Kubernetes@1
             displayName: 'kubectl create namespace'
